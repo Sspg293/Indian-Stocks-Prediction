@@ -84,10 +84,13 @@ export async function GET() {
     new Map(assets.map(a => [`${a.category}:${a.symbol}`, a])).values()
   ).sort((a, b) => a.symbol.localeCompare(b.symbol));
 
-  return NextResponse.json({
-    source: "NSE official security files",
-    updatedAt: new Date().toISOString(),
-    count: unique.length,
-    assets: unique
-  });
+  return NextResponse.json(
+    {
+      source: "NSE official security files",
+      updatedAt: new Date().toISOString(),
+      count: unique.length,
+      assets: unique
+    },
+    { headers: { "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400" } }
+  );
 }
