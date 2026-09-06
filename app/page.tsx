@@ -42,7 +42,17 @@ export default function Home() {
       .then(r => r.ok ? r.json() : Promise.reject(new Error("Universe API failed")))
       .then(data => {
         if (Array.isArray(data.assets) && data.assets.length) {
-          setAssets(data.assets);
+          // Keep any locally supplied quote/prediction fields when the
+          // security-master response only contains symbol/name metadata.
+          const demoBySymbol = new Map(demoStocks.map(a => [a.symbol, a]));
+          const merged = data.assets.map((asset: Asset) => {
+            const demo = demoBySymbol.get(asset.symbol);
+            return demo
+              ? { ...asset, price: asset.price ?? demo.price, change: asset.change ?? demo.change,
+                  signal: asset.signal ?? demo.signal, score: asset.score ?? demo.score }
+              : asset;
+          });
+          setAssets(merged);
         }
       })
       .catch(() => {})
