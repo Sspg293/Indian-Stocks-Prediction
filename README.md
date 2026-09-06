@@ -51,3 +51,14 @@ Do not commit API keys to GitHub.
 The UI now has filters for **All, Equity, Gold ETF and Silver ETF**, with Gold BeES/Silver BeES examples included. NSE publishes an ETF market-data section and a securities-available-for-trading list; the production app should synchronize those instruments through a licensed data provider rather than hard-code a static list.
 
 For "all stocks", use the provider's current security master so new listings, delistings, symbol changes and corporate actions are reflected automatically.
+
+## Complete universe implementation
+
+`app/api/universe/route.ts` now reads the official NSE security files server-side:
+- Equity
+- SME
+- ETF
+- REIT
+- InvIT
+
+Gold and Silver ETFs are automatically classified from the ETF security name/symbol. The browser calls `/api/universe`, so thousands of securities are not hard-coded into the frontend. NSE's official securities page links these CSV files. The site should still use a licensed provider for live quotes and prediction inputs.
