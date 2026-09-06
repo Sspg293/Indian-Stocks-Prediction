@@ -45,3 +45,9 @@ For production, connect a licensed/reliable market-data source and implement:
 - rate limiting and caching
 
 Do not commit API keys to GitHub.
+
+## Asset coverage
+
+The UI now has filters for **All, Equity, Gold ETF and Silver ETF**, with Gold BeES/Silver BeES examples included. NSE publishes an ETF market-data section and a securities-available-for-trading list; the production app should synchronize those instruments through a licensed data provider rather than hard-code a static list.
+
+For "all stocks", use the provider's current security master so new listings, delistings, symbol changes and corporate actions are reflected automatically.
