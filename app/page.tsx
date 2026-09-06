@@ -36,6 +36,9 @@ export default function Home() {
   const [category, setCategory] = useState("All");
   const [assets, setAssets] = useState<Asset[]>(demoStocks);
   const [loadingUniverse, setLoadingUniverse] = useState(true);
+  const [quotes, setQuotes] = useState<Record<string, { price: number; change: number; updatedAt?: string }>>({});
+  const [loadingQuotes, setLoadingQuotes] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
 
   useEffect(() => {
     fetch("/api/universe")
@@ -59,12 +62,50 @@ export default function Home() {
       .finally(() => setLoadingUniverse(false));
   }, []);
 
-  const stock = assets.find(s => s.symbol === selected) ?? assets[0] ?? demoStocks[0];
-
   const filtered = useMemo(() => assets.filter(s =>
     (category === "All" || s.category === category) &&
     (`${s.symbol} ${s.name}`.toLowerCase().includes(query.toLowerCase()))
   ), [assets, query, category]);
+
+  const getQuote = (symbol: string) => quotes[symbol];
+  const stockBase = assets.find(s => s.symbol === selected) ?? assets[0] ?? demoStocks[0];
+  const selectedQuote = getQuote(stockBase.symbol);
+  const stock = selectedQuote
+    ? { ...stockBase, price: selectedQuote.price, change: selectedQuote.change }
+    : stockBase;
+
+  async function loadQuotes(symbols: string[]) {
+    const unique = Array.from(new Set(symbols.filter(Boolean)));
+    if (!unique.length) return;
+    setLoadingQuotes(true);
+    setQuoteError("");
+    try {
+      const response = await fetch(`/api/quotes?symbols=${encodeURIComponent(unique.join(","))}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Quote service unavailable");
+      const data = await response.json();
+      if (data.quotes) setQuotes(prev => ({ ...prev, ...data.quotes }));
+      if (data.errors?.length && !Object.keys(data.quotes ?? {}).length) setQuoteError("Live quote provider did not return prices.");
+    } catch (error) {
+      setQuoteError(error instanceof Error ? error.message : "Unable to load live prices.");
+    } finally {
+      setLoadingQuotes(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!assets.length) return;
+    // Load a manageable first page automatically; search/selection can load any symbol.
+    loadQuotes(filtered.slice(0, 40).map(a => a.symbol));
+    // Keep the selected instrument fresh.
+    const timer = setInterval(() => loadQuotes([selected]), 30000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets.length, selected, category, query]);
+
+  useEffect(() => {
+    if (selected) loadQuotes([selected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
 
   return (
     <main className="min-h-screen grid-bg">
@@ -86,7 +127,7 @@ export default function Home() {
           <div>
             <p className="mb-2 text-sm text-emerald-400">● Market dashboard</p>
             <h1 className="text-3xl font-bold md:text-4xl">Indian Market Predictions</h1>
-            <p className="mt-2 text-slate-400">Complete NSE security universe with stocks, ETFs, Gold, Silver, REITs and InvITs.</p>
+            <p className="mt-2 text-slate-400">Complete Indian security universe with live-quote integration for stocks, ETFs, Gold, Silver, REITs and InvITs.</p>
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-3 text-slate-500" size={18} />
@@ -108,7 +149,7 @@ export default function Home() {
           <section className="card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><div className="text-xs text-slate-500">Selected security</div><h2 className="text-xl font-semibold">{stock.symbol}</h2><div className="text-sm text-slate-400">{stock.name}</div></div>
-              <div className="text-right"><div className="text-2xl font-bold">{stock.price ? `₹${stock.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "Live price pending"}</div><div className={stock.change && stock.change >= 0 ? "text-emerald-400" : "text-rose-400"}>{stock.change != null ? `${stock.change >= 0 ? "+" : ""}${stock.change}%` : "—"}</div></div>
+              <div className="text-right"><div className="text-2xl font-bold">{stock.price != null ? `₹${stock.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : loadingQuotes ? "Loading price…" : "Price unavailable"}</div><div className={stock.change != null && stock.change >= 0 ? "text-emerald-400" : "text-rose-400"}>{stock.change != null ? `${stock.change >= 0 ? "+" : ""}${stock.change.toFixed(2)}%` : "—"}</div>{selectedQuote?.updatedAt && <div className="mt-1 text-[10px] text-slate-600">Updated {new Date(selectedQuote.updatedAt).toLocaleTimeString("en-IN")}</div>}</div>
             </div>
             <div className="mt-5 h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chart}><CartesianGrid stroke="rgba(148,163,184,.08)" vertical={false}/><XAxis dataKey="t" hide/><YAxis domain={["dataMin - 5","dataMax + 5"]} width={55} tick={{fill:"#64748b",fontSize:11}}/><Tooltip contentStyle={{background:"#0b1220",border:"1px solid #263247",borderRadius:12}}/><Area type="monotone" dataKey="price" stroke="#818cf8" fill="#818cf8" fillOpacity={.15} strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
           </section>
@@ -132,8 +173,13 @@ export default function Home() {
               <h2 className="font-semibold">Complete Indian Security Universe</h2>
               <p className="text-xs text-slate-500">{loadingUniverse ? "Loading official NSE security files…" : `${filtered.length.toLocaleString("en-IN")} matching securities`}</p>
             </div>
-            <div className="flex max-w-full flex-wrap gap-2">{categories.map(x => <button key={x} onClick={() => setCategory(x)} className={`rounded-lg px-3 py-1.5 text-xs ${category === x ? "bg-indigo-500 text-white" : "bg-white/5 text-slate-400"}`}>{x}</button>)}</div>
+            <div className="flex max-w-full flex-wrap items-center gap-2">
+              <button onClick={() => loadQuotes(filtered.slice(0, 100).map(a => a.symbol))} className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300">
+                {loadingQuotes ? "Loading prices…" : "Load live prices"}
+              </button>
+              {categories.map(x => <button key={x} onClick={() => setCategory(x)} className={`rounded-lg px-3 py-1.5 text-xs ${category === x ? "bg-indigo-500 text-white" : "bg-white/5 text-slate-400"}`}>{x}</button>)}</div>
           </div>
+          {quoteError && <div className="border-b border-amber-500/10 bg-amber-500/5 px-5 py-2 text-xs text-amber-300">{quoteError}</div>}
           <div className="grid grid-cols-[1.25fr_.8fr_.7fr_.8fr] gap-3 px-5 py-3 text-[10px] font-bold text-slate-600"><span>SYMBOL / COMPANY</span><span>EXCHANGE</span><span>TYPE</span><span>PRICE</span></div>
           <div className="max-h-[620px] divide-y divide-white/5 overflow-auto">
             {filtered.slice(0, 500).map(s =>
@@ -141,7 +187,7 @@ export default function Home() {
                 <div><div className="font-medium">{s.symbol}</div><div className="truncate text-xs text-slate-500">{s.name}</div></div>
                 <div className="text-xs text-slate-400">{s.exchange ?? "NSE"}</div>
                 <div className="text-xs text-slate-400">{s.category}</div>
-                <div className="text-sm">{s.price ? `₹${s.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}</div>
+                <div className="text-sm">{getQuote(s.symbol)?.price != null ? `₹${getQuote(s.symbol).price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : s.price != null ? `₹${s.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}</div>
               </button>
             )}
           </div>
