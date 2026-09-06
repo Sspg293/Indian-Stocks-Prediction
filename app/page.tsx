@@ -11,6 +11,10 @@ type Asset = {
   change?: number;
   signal?: string;
   score?: number;
+  rsi?: number;
+  macd?: number;
+  ema20?: number;
+  volumeMomentum?: number;
   category: string;
   exchange?: string;
 };
@@ -36,7 +40,17 @@ export default function Home() {
   const [category, setCategory] = useState("All");
   const [assets, setAssets] = useState<Asset[]>(demoStocks);
   const [loadingUniverse, setLoadingUniverse] = useState(true);
-  const [quotes, setQuotes] = useState<Record<string, { price: number; change: number; updatedAt?: string }>>({});
+  const [quotes, setQuotes] = useState<Record<string, {
+    price: number;
+    change: number;
+    signal?: string;
+    score?: number;
+    rsi?: number;
+    macd?: number;
+    ema20?: number;
+    volumeMomentum?: number;
+    updatedAt?: string;
+  }>>({});
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [quoteError, setQuoteError] = useState("");
 
@@ -71,7 +85,17 @@ export default function Home() {
   const stockBase = assets.find(s => s.symbol === selected) ?? assets[0] ?? demoStocks[0];
   const selectedQuote = getQuote(stockBase.symbol);
   const stock = selectedQuote
-    ? { ...stockBase, price: selectedQuote.price, change: selectedQuote.change }
+    ? {
+        ...stockBase,
+        price: selectedQuote.price,
+        change: selectedQuote.change,
+        signal: selectedQuote.signal,
+        score: selectedQuote.score,
+        rsi: selectedQuote.rsi,
+        macd: selectedQuote.macd,
+        ema20: selectedQuote.ema20,
+        volumeMomentum: selectedQuote.volumeMomentum
+      }
     : stockBase;
 
   async function loadQuotes(symbols: string[]) {
@@ -157,12 +181,17 @@ export default function Home() {
           <section className="card p-5">
             <div className="flex items-center gap-2 text-slate-300"><Activity size={18}/> AI Prediction</div>
             <div className="mt-5 flex items-center justify-between">
-              <div><div className="text-3xl font-bold text-emerald-400">{stock.signal ?? "—"}</div><div className="text-sm text-slate-500">Model signal</div></div>
-              <div className="text-right"><div className="text-3xl font-bold">{stock.score ? `${stock.score}%` : "—"}</div><div className="text-xs text-slate-500">confidence</div></div>
+              <div><div className={`text-3xl font-bold ${stock.signal === "SELL" ? "text-rose-400" : stock.signal === "HOLD" ? "text-amber-300" : "text-emerald-400"}`}>{stock.signal ?? "—"}</div><div className="text-sm text-slate-500">Prediction model</div></div>
+              <div className="text-right"><div className="text-3xl font-bold">{stock.score != null ? `${stock.score}%` : "—"}</div><div className="text-xs text-slate-500">confidence</div></div>
             </div>
             <div className="mt-5 rounded-xl bg-white/5 p-4"><div className="flex justify-between text-sm"><span className="text-slate-400">Asset class</span><span>{stock.category}</span></div></div>
             <div className="mt-5 space-y-3 text-sm">
-              {["RSI","MACD","20 EMA trend","Volume momentum"].map((x,i)=><div className="flex justify-between border-b border-white/5 pb-3" key={x}><span className="text-slate-400">{x}</span><span className={i===3 ? "text-emerald-400" : "text-slate-200"}>{stock.signal ? ["61.4 Bullish","Bullish crossover","Above EMA","High"][i] : "Connect live data"}</span></div>)}
+              {[
+                ["RSI", stock.rsi != null ? stock.rsi.toFixed(1) : "—"],
+                ["MACD", stock.macd != null ? stock.macd.toFixed(2) : "—"],
+                ["20 EMA trend", stock.ema20 != null && stock.price != null ? (stock.price >= stock.ema20 ? "Above EMA" : "Below EMA") : "—"],
+                ["Volume momentum", stock.volumeMomentum != null ? `${stock.volumeMomentum >= 0 ? "+" : ""}${stock.volumeMomentum.toFixed(0)}%` : "—"]
+              ].map(([x,v],i)=><div className="flex justify-between border-b border-white/5 pb-3" key={x}><span className="text-slate-400">{x}</span><span className={i===3 && stock.volumeMomentum != null && stock.volumeMomentum >= 0 ? "text-emerald-400" : "text-slate-200"}>{v}</span></div>)}
             </div>
           </section>
         </div>
@@ -180,14 +209,15 @@ export default function Home() {
               {categories.map(x => <button key={x} onClick={() => setCategory(x)} className={`rounded-lg px-3 py-1.5 text-xs ${category === x ? "bg-indigo-500 text-white" : "bg-white/5 text-slate-400"}`}>{x}</button>)}</div>
           </div>
           {quoteError && <div className="border-b border-amber-500/10 bg-amber-500/5 px-5 py-2 text-xs text-amber-300">{quoteError}</div>}
-          <div className="grid grid-cols-[1.25fr_.8fr_.7fr_.8fr] gap-3 px-5 py-3 text-[10px] font-bold text-slate-600"><span>SYMBOL / COMPANY</span><span>EXCHANGE</span><span>TYPE</span><span>PRICE</span></div>
+          <div className="grid grid-cols-[1.2fr_.65fr_.65fr_.8fr_.65fr] gap-3 px-5 py-3 text-[10px] font-bold text-slate-600"><span>SYMBOL / COMPANY</span><span>EXCHANGE</span><span>TYPE</span><span>PRICE</span><span>PREDICTION</span></div>
           <div className="max-h-[620px] divide-y divide-white/5 overflow-auto">
             {filtered.slice(0, 500).map(s =>
-              <button key={`${s.exchange}-${s.symbol}-${s.category}`} onClick={() => setSelected(s.symbol)} className="grid w-full grid-cols-[1.25fr_.8fr_.7fr_.8fr] items-center gap-3 px-5 py-3 text-left hover:bg-white/[.03]">
+              <button key={`${s.exchange}-${s.symbol}-${s.category}`} onClick={() => setSelected(s.symbol)} className="grid w-full grid-cols-[1.2fr_.65fr_.65fr_.8fr_.65fr] items-center gap-3 px-5 py-3 text-left hover:bg-white/[.03]">
                 <div><div className="font-medium">{s.symbol}</div><div className="truncate text-xs text-slate-500">{s.name}</div></div>
                 <div className="text-xs text-slate-400">{s.exchange ?? "NSE"}</div>
                 <div className="text-xs text-slate-400">{s.category}</div>
                 <div className="text-sm">{getQuote(s.symbol)?.price != null ? `₹${getQuote(s.symbol).price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : s.price != null ? `₹${s.price.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "—"}</div>
+                <div className={`text-xs font-semibold ${getQuote(s.symbol)?.signal === "SELL" ? "text-rose-400" : getQuote(s.symbol)?.signal === "HOLD" ? "text-amber-300" : getQuote(s.symbol)?.signal === "BUY" ? "text-emerald-400" : "text-slate-600"}`}>{getQuote(s.symbol)?.signal ?? "—"}</div>
               </button>
             )}
           </div>
