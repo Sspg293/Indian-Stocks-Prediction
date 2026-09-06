@@ -14,6 +14,20 @@ const stocks = [
   { symbol: "ICICIBANK", name: "ICICI Bank", price: 1428.90, change: -1.18, signal: "SELL", score: 69 }
 ];
 
+const etfs = [
+  { symbol: "GOLDBEES", name: "Nippon India ETF Gold BeES", price: 127.17, change: 0.74, signal: "BUY", score: 74, category: "Gold ETF" },
+  { symbol: "SILVERBEES", name: "Nippon India Silver ETF", price: 222.78, change: 1.32, signal: "BUY", score: 76, category: "Silver ETF" },
+  { symbol: "GOLDIETF", name: "ICICI Prudential Gold ETF", price: 96.10, change: 0.68, signal: "BUY", score: 71, category: "Gold ETF" },
+  { symbol: "SILVERCASE", name: "Zerodha Silver ETF", price: 91.20, change: 1.05, signal: "HOLD", score: 62, category: "Silver ETF" }
+];
+
+const universe = [
+  ...stocks.map(s => ({ ...s, category: "Equity" })),
+  ...etfs
+];
+
+const sectors = ["All", "Equity", "Gold ETF", "Silver ETF"];
+
 const chart = Array.from({length: 30}, (_, i) => ({
   t: `${9 + Math.floor((i*5)/60)}:${String((15 + i*5)%60).padStart(2,"0")}`,
   price: 1464 + i * 0.72 + Math.sin(i/2.8)*5 + Math.cos(i/4)*2
