@@ -62,3 +62,9 @@ For "all stocks", use the provider's current security master so new listings, de
 - InvIT
 
 Gold and Silver ETFs are automatically classified from the ETF security name/symbol. The browser calls `/api/universe`, so thousands of securities are not hard-coded into the frontend. NSE's official securities page links these CSV files. The site should still use a licensed provider for live quotes and prediction inputs.
+
+## Quote loading fix
+
+The frontend now keeps security-master data separate from quotes. It automatically requests quotes for the first 40 matching securities and the selected symbol, refreshes the selected quote every 30 seconds, and provides a **Load live prices** button for up to 100 visible securities.
+
+`/api/quotes` currently uses Yahoo Finance's public chart endpoint as a fallback. This may be delayed, rate-limited, or unavailable from Vercel and is not a substitute for a licensed real-time NSE/BSE feed. For genuine real-time production data, replace that route with a licensed broker/data-provider API.
