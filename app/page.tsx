@@ -22,8 +22,12 @@ const chart = Array.from({length: 30}, (_, i) => ({
 export default function Home() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState("RELIANCE");
-  const stock = stocks.find(s => s.symbol === selected) ?? stocks[0];
-  const filtered = useMemo(() => stocks.filter(s => (s.symbol + s.name).toLowerCase().includes(query.toLowerCase())), [query]);
+  const [category, setCategory] = useState("All");
+  const stock = universe.find(s => s.symbol === selected) ?? universe[0];
+  const filtered = useMemo(() => universe.filter(s =>
+    (category === "All" || s.category === category) &&
+    (s.symbol + s.name).toLowerCase().includes(query.toLowerCase())
+  ), [query, category]);
 
   return (
     <main className="min-h-screen grid-bg">
@@ -72,8 +76,18 @@ export default function Home() {
         </div>
 
         <section className="mt-5 card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-white/10 p-5"><div><h2 className="font-semibold">Prediction Watchlist</h2><p className="text-xs text-slate-500">Demo signals — connect a live provider before using real-time data.</p></div><BarChart3 size={20} className="text-slate-500"/></div>
-          <div className="divide-y divide-white/5">{filtered.map(s=><button key={s.symbol} onClick={()=>setSelected(s.symbol)} className="grid w-full grid-cols-[1.4fr_1fr_.7fr_.7fr] items-center gap-3 px-5 py-4 text-left hover:bg-white/[.03]"><div><div className="font-medium">{s.symbol}</div><div className="text-xs text-slate-500">{s.name}</div></div><div>₹{s.price.toLocaleString("en-IN")}</div><div className={s.change>=0?"text-emerald-400":"text-rose-400"}>{s.change>=0?"+":""}{s.change}%</div><div className={s.signal==="BUY"?"text-emerald-400":s.signal==="SELL"?"text-rose-400":"text-amber-400"}>{s.signal} · {s.score}%</div></button>)}</div>
+          <div className="flex flex-col gap-4 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
+            <div><h2 className="font-semibold">Stocks, Gold & Silver ETFs</h2><p className="text-xs text-slate-500">The production version will load the complete NSE/BSE security master from your market-data provider.</p></div>
+            <div className="flex flex-wrap gap-2">{sectors.map(x=><button key={x} onClick={()=>setCategory(x)} className={`rounded-lg px-3 py-1.5 text-xs ${category===x?"bg-indigo-500 text-white":"bg-white/5 text-slate-400"}`}>{x}</button>)}</div>
+          </div>
+          <div className="divide-y divide-white/5">
+            {filtered.map(s=><button key={s.symbol} onClick={()=>setSelected(s.symbol)} className="grid w-full grid-cols-[1.2fr_.8fr_.7fr_.8fr] items-center gap-3 px-5 py-4 text-left hover:bg-white/[.03]">
+              <div><div className="font-medium">{s.symbol}</div><div className="text-xs text-slate-500">{s.name} · {s.category}</div></div>
+              <div>₹{s.price.toLocaleString("en-IN", {minimumFractionDigits:2})}</div>
+              <div className={s.change>=0?"text-emerald-400":"text-rose-400"}>{s.change>=0?"+":""}{s.change}%</div>
+              <div className={s.signal==="BUY"?"text-emerald-400":s.signal==="SELL"?"text-rose-400":"text-amber-400"}>{s.signal} · {s.score}%</div>
+            </button>)}
+          </div>
         </section>
 
         <footer className="py-8 text-center text-xs text-slate-600">Educational dashboard. Predictions are model outputs, not guaranteed returns or investment advice.</footer>
