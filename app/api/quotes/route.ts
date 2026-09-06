@@ -52,7 +52,14 @@ function macd(values: number[]) {
   return ema(values, 12) - ema(values, 26);
 }
 
-function buildPrediction(closes: number[], volumes: number[], price: number) {
+function buildPrediction(closes: number[], volumes: number[], price: number): {
+  signal: "BUY" | "HOLD" | "SELL";
+  score: number;
+  rsi: number;
+  macd: number;
+  ema20: number;
+  volumeMomentum: number;
+} {
   const r = rsi(closes);
   const m = macd(closes);
   const e20 = ema(closes, Math.min(20, closes.length));
