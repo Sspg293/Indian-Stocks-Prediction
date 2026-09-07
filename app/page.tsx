@@ -15,6 +15,7 @@ type Asset = {
   macd?: number;
   ema20?: number;
   volumeMomentum?: number;
+  next7Days?: { day: number; price: number; changePct: number }[];
   category: string;
   exchange?: string;
 };
@@ -49,6 +50,7 @@ export default function Home() {
     macd?: number;
     ema20?: number;
     volumeMomentum?: number;
+    next7Days?: { day: number; price: number; changePct: number }[];
     updatedAt?: string;
   }>>({});
   const [loadingQuotes, setLoadingQuotes] = useState(false);
@@ -94,7 +96,8 @@ export default function Home() {
         rsi: selectedQuote.rsi,
         macd: selectedQuote.macd,
         ema20: selectedQuote.ema20,
-        volumeMomentum: selectedQuote.volumeMomentum
+        volumeMomentum: selectedQuote.volumeMomentum,
+        next7Days: selectedQuote.next7Days
       }
     : stockBase;
 
@@ -198,6 +201,27 @@ export default function Home() {
             </div>
           </section>
         </div>
+
+        <section className="mt-5 card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-slate-300"><TrendingUp size={18}/> AI Prediction for Next 7 Days</div>
+              <p className="mt-1 text-xs text-slate-500">Model-based projected prices using recent trend and technical momentum.</p>
+            </div>
+            {stock.next7Days?.length ? <div className="rounded-lg bg-indigo-500/10 px-3 py-1.5 text-xs text-indigo-300">7-day estimate</div> : null}
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+            {(stock.next7Days ?? []).map((item) => (
+              <div key={item.day} className="rounded-xl border border-white/5 bg-white/[.03] p-3">
+                <div className="text-xs text-slate-500">Day {item.day}</div>
+                <div className="mt-2 text-sm font-semibold">₹{item.price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className={`mt-1 text-xs font-medium ${item.changePct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{item.changePct >= 0 ? "+" : ""}{item.changePct.toFixed(2)}%</div>
+              </div>
+            ))}
+          </div>
+          {!stock.next7Days?.length && <div className="mt-5 rounded-xl bg-white/5 p-4 text-sm text-slate-500">Select a security with market data to generate the 7-day estimate.</div>}
+          <div className="mt-4 text-[11px] text-slate-600">Educational estimate only. Market prices can move sharply and actual results may differ substantially.</div>
+        </section>
 
         <section className="mt-5 card overflow-hidden">
           <div className="flex flex-col gap-4 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
