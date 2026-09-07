@@ -13,6 +13,7 @@ type Quote = {
   macd: number;
   ema20: number;
   volumeMomentum: number;
+  next7Days: { day: number; price: number; changePct: number }[];
   updatedAt: string;
 };
 
@@ -60,6 +61,7 @@ function buildPrediction(closes: number[], volumes: number[], price: number): {
   macd: number;
   ema20: number;
   volumeMomentum: number;
+  next7Days: { day: number; price: number; changePct: number }[];
 } {
   const r = rsi(closes);
   const m = macd(closes);
@@ -85,7 +87,24 @@ function buildPrediction(closes: number[], volumes: number[], price: number): {
 
   score = Math.max(1, Math.min(99, Math.round(score)));
   const signal = score >= 65 ? "BUY" : score <= 40 ? "SELL" : "HOLD";
-  return { signal, score, rsi: r, macd: m, ema20: e20, volumeMomentum: vm };
+
+  // Seven-day directional projection based on recent trend, momentum and
+  // the technical score. This is a model estimate, not a guaranteed price.
+  const window = closes.slice(-20);
+  const n = window.length;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (let i = 0; i < n; i++) { sx += i; sy += window[i]; sxx += i*i; sxy += i*window[i]; }
+  const denom = n*sxx - sx*sx;
+  const slope = denom ? (n*sxy - sx*sy) / denom : 0;
+  const dailyMomentum = price ? (slope / price) : 0;
+  const bias = (score - 50) / 5000;
+  const dailyReturn = Math.max(-0.03, Math.min(0.03, dailyMomentum + bias));
+  const next7Days = Array.from({ length: 7 }, (_, i) => {
+    const projected = price * Math.pow(1 + dailyReturn, i + 1);
+    return { day: i + 1, price: projected, changePct: ((projected / price) - 1) * 100 };
+  });
+
+  return { signal, score, rsi: r, macd: m, ema20: e20, volumeMomentum: vm, next7Days };
 }
 
 async function fetchYahoo(symbol: string): Promise<Quote | null> {
