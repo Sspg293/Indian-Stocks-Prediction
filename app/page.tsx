@@ -119,11 +119,12 @@ export default function Home() {
   useEffect(() => {
     if (!assets.length) return;
     // Load a manageable first page automatically; search/selection can load any symbol.
-    loadQuotes(filtered.slice(0, 40).map(a => a.symbol));
-    // Keep the selected instrument fresh.
+    loadQuotes([...filtered.slice(0, 40).map(a => a.symbol), selected]);
+    // No page reload is needed. Refresh only quote/prediction data periodically.
+    // 15s is used to reduce load and public-source rate limiting.
     const timer = setInterval(() => {
       loadQuotes([...filtered.slice(0, 40).map(a => a.symbol), selected]);
-    }, 1000);
+    }, 15000);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assets.length, selected, category, query]);
@@ -202,7 +203,7 @@ export default function Home() {
           <div className="flex flex-col gap-4 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="font-semibold">Complete Indian Security Universe</h2>
-              <p className="text-xs text-slate-500">{loadingUniverse ? "Loading official NSE security files…" : `${filtered.length.toLocaleString("en-IN")} matching securities · quotes refresh every 1 second`} · prices refresh every 1 second</p>
+              <p className="text-xs text-slate-500">{loadingUniverse ? "Loading official NSE security files…" : `${filtered.length.toLocaleString("en-IN")} matching securities · prices update automatically every 15 seconds — no page refresh needed`</p>
             </div>
             <div className="flex max-w-full flex-wrap items-center gap-2">
               <button onClick={() => loadQuotes(filtered.slice(0, 100).map(a => a.symbol))} className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300">
