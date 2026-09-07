@@ -203,7 +203,7 @@ export default function Home() {
           <div className="flex flex-col gap-4 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="font-semibold">Complete Indian Security Universe</h2>
-              <p className="text-xs text-slate-500">{loadingUniverse ? "Loading official NSE security files…" : `${filtered.length.toLocaleString("en-IN")} matching securities · prices update automatically every 15 seconds — no page refresh needed`</p>
+              <p className="text-xs text-slate-500">{loadingUniverse ? "Loading official NSE security files…" : `${filtered.length.toLocaleString("en-IN")} matching securities · prices update automatically every 15 seconds — no page refresh needed`}</p>
             </div>
             <div className="flex max-w-full flex-wrap items-center gap-2">
               <button onClick={() => loadQuotes(filtered.slice(0, 100).map(a => a.symbol))} className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300">
